@@ -63,6 +63,16 @@ jobs:
           fi
 
           # Gate: the updated formula must audit clean before it ships.
+          # brew is not always on the runner PATH.
+          if ! command -v brew >/dev/null; then
+            for d in /home/linuxbrew/.linuxbrew /opt/homebrew; do
+              [ -x "$d/bin/brew" ] && export PATH="$d/bin:$PATH" && break
+            done
+          fi
+          if ! command -v brew >/dev/null; then
+            echo "brew not found; bump not committed, run the audit manually" >&2
+            exit 1
+          fi
           brew audit --formula "$F"
 
           git config user.name  "github-actions[bot]"
