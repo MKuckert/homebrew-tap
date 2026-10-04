@@ -73,11 +73,12 @@ jobs:
             echo "brew not found; bump not committed, run the audit manually" >&2
             exit 1
           fi
-          # brew audit takes a formula name, not a path; register this
-          # checkout as the tap so the name resolves to the working copy.
+          # brew audit takes a formula name, not a path: register the tap
+          # (clones from GitHub) and audit our working copy by overwriting
+          # the clone with it.
+          brew tap MKuckert/homebrew-tap
           TAP_DIR="${HOMEBREW_LIBRARY:-/home/linuxbrew/.linuxbrew/Homebrew}/Taps/MKuckert/homebrew-tap"
-          mkdir -p "$(dirname "$TAP_DIR")"
-          ln -s "$PWD" "$TAP_DIR"
+          cp "$F" "$TAP_DIR/Formula/$(basename "$F")"
           brew audit --formula mcp-commands
 
           git config user.name  "github-actions[bot]"
