@@ -43,11 +43,13 @@ jobs:
             exit 1
           fi
 
-          # Drop the one-time seed version line (present only in the v0.8.3
-          # seed; a no-op in steady state, where the URL carries the version).
-          # Then rewrite the top-level url (macOS arm64) and the url/sha256
-          # of the darwin_amd64 + linux_amd64 resources from the tag.
+          # Drop the one-time seed version line + its comment (present only
+          # in the v0.8.3 seed; no-ops in steady state, where the URL
+          # carries the version). Then rewrite the top-level url (macOS
+          # arm64) and the url/sha256 of the darwin_amd64 + linux_amd64
+          # resources from the tag.
           awk -v base="$BASE" -v ver="$VER" -v arm="$ARM" -v intel="$INTEL" -v linux="$LINUX" '
+            /^  # One-time seed/ { next }
             /^  version "[^"]*"[[:space:]]*$/ { next }
             /^[[:space:]]*url .*_(darwin_arm64|darwin_amd64|linux_amd64)/ {
               if      ($0 ~ /darwin_arm64/) { plat = "darwin_arm64";  sum = arm }
