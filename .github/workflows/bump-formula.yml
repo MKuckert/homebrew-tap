@@ -74,10 +74,15 @@ jobs:
             exit 1
           fi
           # brew audit takes a formula name, not a path: register the tap
-          # (clones from GitHub) and audit our working copy by overwriting
-          # the clone with it.
-          brew tap MKuckert/homebrew-tap
-          TAP_DIR="${HOMEBREW_LIBRARY:-/home/linuxbrew/.linuxbrew/Homebrew}/Taps/MKuckert/homebrew-tap"
+          # in the Homebrew library (current layout is Library/Taps with a
+          # lowercased user; `brew tap` would 404 on the legacy mkuckert/tap
+          # URL) and audit our working copy by overwriting the clone.
+          TAP_ROOT="$(brew --prefix)/Library/Taps/mkuckert"
+          TAP_DIR="$TAP_ROOT/homebrew-tap"
+          mkdir -p "$TAP_ROOT"
+          if [ ! -d "$TAP_DIR" ]; then
+            git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
+          fi
           cp "$F" "$TAP_DIR/Formula/$(basename "$F")"
           brew audit --formula mcp-commands
 
