@@ -55,14 +55,15 @@ jobs:
             { print }
           ' "$F" > "$F.new" && mv "$F.new" "$F"
 
-          # Gate: the updated formula must audit clean before it ships.
-          brew audit --formula "$F"
-
-          # Idempotent: re-dispatch on an unchanged version makes no changes.
+          # Idempotent: re-dispatch on an unchanged version makes no changes;
+          # check before the audit so no-op dispatches skip it.
           if git diff --quiet; then
             echo "formula unchanged, nothing to commit"
             exit 0
           fi
+
+          # Gate: the updated formula must audit clean before it ships.
+          brew audit --formula "$F"
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
