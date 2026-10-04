@@ -1,0 +1,71 @@
+name: bump-formula
+
+# Triggered from MKuckert/mcp-commands' release workflow after a
+# successful GoReleaser release. The dispatch carries the tag
+# (e.g. "v0.9.0") in client_payload.
+on:
+  repository_dispatch:
+    types: [release-bumped]
+
+# The job's own GITHUB_TOKEN commits and pushes; it needs contents: write
+# (read is the default and would fail on the push).
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Bump mcp-commands formula
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          set -euo pipefail
+
+          # The dispatched tag is $GITHUB_REF_NAME (v0.9.0); GoReleaser's
+          # {{ .Version }} is bare, so filenames/URLs use the version
+          # without the leading v.
+          VER="${TAG#v}"
+          BASE="https://github.com/MKuckert/mcp-commands/releases/download/v${VER}"
+          F="Formula/mcp-commands.rb"
+
+          curl -fsSL -o checksums.txt "${BASE}/checksums.txt"
+          sum() { awk -v f="$1" '$2 == f { print $1; exit }' checksums.txt; }
+
+          ARM="$(sum "mcp-commands_${VER}_darwin_arm64.tar.gz")"
+          INTEL="$(sum "mcp-commands_${VER}_darwin_amd64.tar.gz")"
+          LINUX="$(sum "mcp-commands_${VER}_linux_amd64.tar.gz")"
+          if [ -z "$ARM" ] || [ -z "$INTEL" ] || [ -z "$LINUX" ]; then
+            echo "missing checksums for ${VER}" >&2
+            exit 1
+          fi
+
+          # Drop the one-time seed version line (present only in the v0.8.3
+          # seed; a no-op in steady state, where the URL carries the version).
+          # Then rewrite the url + sha256 of each on_* block wholesale from
+          # the tag-derived template.
+          awk -v base="$BASE" -v ver="$VER" -v arm="$ARM" -v intel="$INTEL" -v linux="$LINUX" '
+            /^  version "[^"]*"[[:space:]]*$/ { next }
+            /^    url .*darwin_arm64/ { print "    url \"" base "/mcp-commands_" ver "_darwin_arm64.tar.gz\"";  getline; sub(/"[0-9a-f]+"/, "\"" arm   "\""); print; next }
+            /^    url .*darwin_amd64/ { print "    url \"" base "/mcp-commands_" ver "_darwin_amd64.tar.gz\"";  getline; sub(/"[0-9a-f]+"/, "\"" intel "\""); print; next }
+            /^    url .*linux_amd64/  { print "    url \"" base "/mcp-commands_" ver "_linux_amd64.tar.gz\"";   getline; sub(/"[0-9a-f]+"/, "\"" linux "\""); print; next }
+            { print }
+          ' "$F" > "$F.new" && mv "$F.new" "$F"
+
+          # Gate: the updated formula must audit clean before it ships.
+          brew audit --formula "$F"
+
+          # Idempotent: re-dispatch on an unchanged version makes no changes.
+          if git diff --quiet; then
+            echo "formula unchanged, nothing to commit"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$F"
+          git commit -m "mcp-commands ${VER}"
+          git push
