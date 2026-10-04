@@ -3,7 +3,7 @@ class McpCommands < Formula
   homepage "https://github.com/MKuckert/mcp-commands"
   url "https://github.com/MKuckert/mcp-commands/releases/download/v0.8.3/mcp-commands_darwin_arm64.tar.gz"
   sha256 "5eac95beea35647d5b809a9545521bc0585dca739511018a539ef50e257326d1"
-  license :mit
+  license "MIT"
   # One-time seed; the first automated bump removes this line (URL is versioned from 0.9.0 on).
   version "0.8.3"
 
