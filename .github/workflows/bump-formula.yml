@@ -45,13 +45,19 @@ jobs:
 
           # Drop the one-time seed version line (present only in the v0.8.3
           # seed; a no-op in steady state, where the URL carries the version).
-          # Then rewrite the url + sha256 of each on_* block wholesale from
-          # the tag-derived template.
+          # Then rewrite the top-level url (macOS arm64) and the url/sha256
+          # of the darwin_amd64 + linux_amd64 resources from the tag.
           awk -v base="$BASE" -v ver="$VER" -v arm="$ARM" -v intel="$INTEL" -v linux="$LINUX" '
             /^  version "[^"]*"[[:space:]]*$/ { next }
-            /^    url .*darwin_arm64/ { print "    url \"" base "/mcp-commands_" ver "_darwin_arm64.tar.gz\"";  getline; sub(/"[0-9a-f]+"/, "\"" arm   "\""); print; next }
-            /^    url .*darwin_amd64/ { print "    url \"" base "/mcp-commands_" ver "_darwin_amd64.tar.gz\"";  getline; sub(/"[0-9a-f]+"/, "\"" intel "\""); print; next }
-            /^    url .*linux_amd64/  { print "    url \"" base "/mcp-commands_" ver "_linux_amd64.tar.gz\"";   getline; sub(/"[0-9a-f]+"/, "\"" linux "\""); print; next }
+            /^[[:space:]]*url .*_(darwin_arm64|darwin_amd64|linux_amd64)/ {
+              if      ($0 ~ /darwin_arm64/) { plat = "darwin_arm64";  sum = arm }
+              else if ($0 ~ /darwin_amd64/) { plat = "darwin_amd64";  sum = intel }
+              else                          { plat = "linux_amd64";   sum = linux }
+              if ($0 ~ /^    /) printf "    url \"%s/mcp-commands_%s_%s.tar.gz\"\n", base, ver, plat
+              else              printf "  url \"%s/mcp-commands_%s_%s.tar.gz\"\n", base, ver, plat
+              next
+            }
+            /^[[:space:]]*sha256 "/ { gsub(/"[0-9a-f]+"/, "\"" sum "\""); print; next }
             { print }
           ' "$F" > "$F.new" && mv "$F.new" "$F"
 
