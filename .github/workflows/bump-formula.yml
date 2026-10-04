@@ -84,6 +84,9 @@ jobs:
             git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
           fi
           cp "$F" "$TAP_DIR/Formula/$(basename "$F")"
+          # The current Homebrew refuses to load formulas from untrusted taps;
+          # this is a CI-registered clone of this very repo, so trust it.
+          brew trust --tap mkuckert/tap
           brew audit --formula mcp-commands
 
           git config user.name  "github-actions[bot]"
