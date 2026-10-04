@@ -77,7 +77,7 @@ jobs:
           # in the Homebrew library (current layout is Library/Taps with a
           # lowercased user; `brew tap` would 404 on the legacy mkuckert/tap
           # URL) and audit our working copy by overwriting the clone.
-          TAP_ROOT="$(brew --prefix)/Library/Taps/mkuckert"
+          TAP_ROOT="${HOMEBREW_LIBRARY:-$(brew --prefix)/Homebrew}/Library/Taps/mkuckert"
           TAP_DIR="$TAP_ROOT/homebrew-tap"
           mkdir -p "$TAP_ROOT"
           if [ ! -d "$TAP_DIR" ]; then
