@@ -1,8 +1,8 @@
 class McpCommands < Formula
   desc "CLI tool that converts CLI commands into Model Context Protocol resources"
   homepage "https://github.com/MKuckert/mcp-commands"
-  url "https://github.com/MKuckert/mcp-commands/releases/download/v0.10.0/mcp-commands_0.10.0_darwin_arm64.tar.gz"
-  sha256 "e3d40ddf4c797b5607c0e8a3e31c1f453b9f74fc0bb4df212207baca480c34e9"
+  url "https://github.com/MKuckert/mcp-commands/releases/download/v0.11.0/mcp-commands_0.11.0_darwin_arm64.tar.gz"
+  sha256 "c2d624f88d8d315bb19355b14b9e3f3f76ce063eb97d600b7865ce185476797f"
   license "MIT"
 
   livecheck do
@@ -11,13 +11,13 @@ class McpCommands < Formula
   end
 
   resource "darwin_amd64" do
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.10.0/mcp-commands_0.10.0_darwin_amd64.tar.gz"
-    sha256 "d7328086471128e6a0160530d35d1273cc0272e2b7fd4d988de463173e0c3dc2"
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.11.0/mcp-commands_0.11.0_darwin_amd64.tar.gz"
+    sha256 "67f51e1ffcffc5c90592945104dc8b86486a1ee314d268d35165770efd670105"
   end
 
   resource "linux_amd64" do
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.10.0/mcp-commands_0.10.0_linux_amd64.tar.gz"
-    sha256 "9181949b76114ffb752ea13487293656e16f06a02268eaac729c745fd38e830e"
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.11.0/mcp-commands_0.11.0_linux_amd64.tar.gz"
+    sha256 "39a0afbb6df753b439aaad45a0cff940c41952ad2a4013fd4b2583cc2e9976f9"
   end
 
   def install
