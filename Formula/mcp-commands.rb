@@ -5,6 +5,9 @@ class McpCommands < Formula
   sha256 "c65559f8434511691d4a99385a0c92e0e15654e0fed2ed22bc32e55b7ae9718d"
   license "MIT"
 
+  depends_on "zsh" => :test
+  depends_on "fish" => :test
+
   livecheck do
     url "https://github.com/MKuckert/mcp-commands/releases"
     regex(%r{href=.*?releases/download/v?(\d+(?:\.\d+)+)\.*}i)
@@ -42,5 +45,12 @@ class McpCommands < Formula
     assert_path_exists etc/"bash_completion.d/mcp-commands"
     assert_path_exists share/"zsh/site-functions/_mcp-commands"
     assert_path_exists share/"fish/vendor_completions.d/mcp-commands.fish"
+
+    # Source each installed script to prove it is valid in its shell
+    # (the zsh file's compdef registration is guarded, so a plain
+    # `zsh -c` source without compinit is safe).
+    system "bash", "-c", ". #{etc}/bash_completion.d/mcp-commands"
+    system "zsh", "-c", ". #{share}/zsh/site-functions/_mcp-commands"
+    system "fish", "-c", "source #{share}/fish/vendor_completions.d/mcp-commands.fish"
   end
 end
