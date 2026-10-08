@@ -5,13 +5,13 @@ class McpCommands < Formula
   sha256 "c65559f8434511691d4a99385a0c92e0e15654e0fed2ed22bc32e55b7ae9718d"
   license "MIT"
 
-  depends_on "zsh" => :test
-  depends_on "fish" => :test
-
   livecheck do
     url "https://github.com/MKuckert/mcp-commands/releases"
     regex(%r{href=.*?releases/download/v?(\d+(?:\.\d+)+)\.*}i)
   end
+
+  depends_on "fish" => :test
+  depends_on "zsh" => :test
 
   resource "darwin_amd64" do
     url "https://github.com/MKuckert/mcp-commands/releases/download/v0.11.1/mcp-commands_0.11.1_darwin_amd64.tar.gz"
