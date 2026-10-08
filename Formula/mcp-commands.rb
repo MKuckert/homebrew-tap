@@ -28,9 +28,19 @@ class McpCommands < Formula
     else
       bin.install "mcp-commands"
     end
+
+    bash_completion.install "completion/mcp-commands.bash" => "mcp-commands"
+    zsh_completion.install "completion/mcp-commands.zsh" => "_mcp-commands"
+    fish_completion.install "completion/mcp-commands.fish"
   end
 
   test do
     system bin/"mcp-commands", "--version"
+
+    # The completion scripts ship in every release archive and land in
+    # Homebrew's standard completion locations.
+    assert_path_exists etc/"bash_completion.d/mcp-commands"
+    assert_path_exists share/"zsh/site-functions/_mcp-commands"
+    assert_path_exists share/"fish/vendor_completions.d/mcp-commands.fish"
   end
 end
