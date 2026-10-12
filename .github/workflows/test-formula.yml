@@ -55,7 +55,7 @@ jobs:
             git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
           fi
           cp Formula/mcp-commands.rb "$TAP_DIR/Formula/"
-          TAP_NAME=$(brew tap | grep -E '^mkuckert/' || true)
+          TAP_NAME=$(brew tap | grep -E '^mkuckert/' | head -n 1 || true)
           if [ -z "$TAP_NAME" ]; then
             echo "mkuckert tap not found after registration" >&2
             exit 1
@@ -102,6 +102,16 @@ jobs:
             echo "expected 3 url/sha256 pairs in the formula, found $count" >&2
             exit 1
           fi
+
+          # Each supported platform must be present exactly once (guards
+          # against a duplicated url sneaking past the count check).
+          for suffix in _darwin_amd64 _darwin_arm64 _linux_amd64; do
+            matches=$(grep -c "mcp-commands_[0-9.]*${suffix}\.tar\.gz" pairs.txt || true)
+            if [ "$matches" -ne 1 ]; then
+              echo "expected exactly one archive for ${suffix}, found ${matches}" >&2
+              exit 1
+            fi
+          done
 
           while IFS=' ' read -r url sum; do
             echo "checking ${url}"

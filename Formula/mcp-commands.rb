@@ -1,21 +1,25 @@
 class McpCommands < Formula
   desc "CLI tool that converts CLI commands into Model Context Protocol resources"
   homepage "https://github.com/MKuckert/mcp-commands"
+  # Only the platforms with a release archive are supported; on anything
+  # else the formula has no url and brew fails loudly at install time.
   if OS.mac? && Hardware::CPU.intel?
     url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_darwin_amd64.tar.gz"
     sha256 "03d023b133e787a14405ce105fa553d65790311939c336261dba3c6be9c57196"
-  elsif OS.linux?
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_linux_amd64.tar.gz"
-    sha256 "88161b5a169e4511ec540bf2d22f0c1f5072f784ed50d11d95caebc30861030f"
-  else
+  elsif OS.mac? && Hardware::CPU.arm?
     url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_darwin_arm64.tar.gz"
     sha256 "211c97ca6b9c45b27b5085bc336980bbafcc2509e5704b0a4345da0bacef345e"
+  elsif OS.linux? && Hardware::CPU.intel?
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_linux_amd64.tar.gz"
+    sha256 "88161b5a169e4511ec540bf2d22f0c1f5072f784ed50d11d95caebc30861030f"
   end
   license "MIT"
 
   livecheck do
     url "https://github.com/MKuckert/mcp-commands/releases"
-    regex(%r{href=.*?releases/download/v?(\d+(?:\.\d+)+)\.*}i)
+    # GitHub renders the asset list client-side, so the static HTML only
+    # contains /releases/tag/ links (no /releases/download/).
+    regex(%r{href=.*?releases/tag/v?(\d+(?:\.\d+)+)\.*}i)
   end
 
   depends_on "fish" => :test
