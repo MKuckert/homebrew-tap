@@ -44,19 +44,17 @@ jobs:
         run: |
           set -euo pipefail
           # brew test/audit take a formula name, not a path: register the tap
-          # in the Homebrew library (current layout is Library/Taps with a
-          # lowercased user; `brew tap` would 404 on the legacy mkuckert/tap
-          # URL) and test our working copy by overwriting the clone.
-          TAP_ROOT="${HOMEBREW_LIBRARY:-$(brew --prefix)/Homebrew}/Library/Taps/mkuckert"
-          TAP_DIR="$TAP_ROOT/homebrew-tap"
-          mkdir -p "$TAP_ROOT"
+          # in brew's taps directory and test our working copy by overwriting
+          # the clone. Both the taps directory layout and the tap *name* vary
+          # across Homebrew versions (6.x: mkuckert/homebrew-tap, 7.x:
+          # mkuckert/tap), so ask brew for both instead of hardcoding.
+          TAPS_DIR=$(brew ruby -e 'puts HOMEBREW_TAP_DIRECTORY')
+          TAP_DIR="$TAPS_DIR/mkuckert/homebrew-tap"
+          mkdir -p "$(dirname "$TAP_DIR")"
           if [ ! -d "$TAP_DIR" ]; then
             git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
           fi
           cp Formula/mcp-commands.rb "$TAP_DIR/Formula/"
-          # The tap's *name* varies by Homebrew version: 6.x derives it from
-          # the directory (mkuckert/homebrew-tap), 7.x strips the homebrew-
-          # prefix (mkuckert/tap). Ask brew instead of hardcoding.
           TAP_NAME=$(brew tap | grep -E '^mkuckert/' || true)
           if [ -z "$TAP_NAME" ]; then
             echo "mkuckert tap not found after registration" >&2
@@ -69,9 +67,10 @@ jobs:
       - name: Run brew test
         run: |
           set -euo pipefail
-          # `brew test` requires the formula to be installed first; brew also
-          # installs the :test dependencies (fish, zsh) automatically.
-          brew install mcp-commands
+          # `brew test` requires the formula to be installed, plus its :test
+          # dependencies (fish, zsh) and their build deps; --include-test
+          # installs all of them.
+          brew install --include-test mcp-commands
           brew test --verbose mcp-commands
 
       - name: Run brew audit
