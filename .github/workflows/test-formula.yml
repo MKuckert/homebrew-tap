@@ -1,0 +1,107 @@
+name: test-formula
+
+# Self-test on every push/PR. The `test` job runs the formula's own
+# `test` block and audits it, natively on Linux (amd64) and macOS
+# (arm64). The darwin_amd64 branch cannot run natively on current
+# GitHub runners, so the `checksums` job verifies that all three
+# release URLs exist and match their checksums instead.
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Ensure brew on PATH
+        run: |
+          set -euo pipefail
+          # brew is not always on the runner PATH. $GITHUB_PATH persists to
+          # later steps; the export covers this step's own verification.
+          if ! command -v brew >/dev/null; then
+            for d in /home/linuxbrew/.linuxbrew /opt/homebrew; do
+              if [ -x "$d/bin/brew" ]; then
+                echo "$d/bin" >> "$GITHUB_PATH"
+                export PATH="$d/bin:$PATH"
+                break
+              fi
+            done
+          fi
+          command -v brew >/dev/null || { echo "brew not found" >&2; exit 1; }
+          brew --version
+
+      - name: Register tap
+        run: |
+          set -euo pipefail
+          # brew test/audit take a formula name, not a path: register the tap
+          # in the Homebrew library (current layout is Library/Taps with a
+          # lowercased user; `brew tap` would 404 on the legacy mkuckert/tap
+          # URL) and test our working copy by overwriting the clone.
+          TAP_ROOT="${HOMEBREW_LIBRARY:-$(brew --prefix)/Homebrew}/Library/Taps/mkuckert"
+          TAP_DIR="$TAP_ROOT/homebrew-tap"
+          mkdir -p "$TAP_ROOT"
+          if [ ! -d "$TAP_DIR" ]; then
+            git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
+          fi
+          cp Formula/mcp-commands.rb "$TAP_DIR/Formula/"
+          # The current Homebrew refuses to load formulas from untrusted taps;
+          # this is a CI-registered clone of this very repo, so trust it.
+          brew trust --tap mkuckert/tap
+
+      - name: Run brew test
+        run: |
+          set -euo pipefail
+          # `brew test` installs the formula's :test dependencies (fish, zsh)
+          # automatically.
+          brew test --verbose mcp-commands
+
+      - name: Run brew audit
+        run: |
+          set -euo pipefail
+          brew audit --formula mcp-commands
+
+  checksums:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Verify release URLs and checksums
+        run: |
+          set -euo pipefail
+
+          # Extract the (url, sha256) pairs from the formula. Only release
+          # archive URLs are matched, so the livecheck URL is ignored.
+          awk '
+            /url "https:\/\/github\.com\/MKuckert\/mcp-commands\/releases\/download\/v[^"]*_[a-z0-9_]+\.tar\.gz"/ { u = $2 }
+            /sha256 "/ { gsub(/"/, "", u); gsub(/"/, "", $2); print u " " $2 }
+          ' Formula/mcp-commands.rb > pairs.txt
+
+          # Exactly 3 platform archives today; update if the formula gains
+          # another.
+          count=$(grep -c . pairs.txt || true)
+          if [ "$count" -ne 3 ]; then
+            echo "expected 3 url/sha256 pairs in the formula, found $count" >&2
+            exit 1
+          fi
+
+          while IFS=' ' read -r url sum; do
+            echo "checking ${url}"
+            curl -fsSL "$url" -o archive.tar.gz
+            actual=$(sha256sum archive.tar.gz | cut -d' ' -f1)
+            rm -f archive.tar.gz
+            if [ "$actual" != "$sum" ]; then
+              echo "checksum mismatch for ${url}" >&2
+              exit 1
+            fi
+          done < pairs.txt
