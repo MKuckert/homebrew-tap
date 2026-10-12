@@ -54,15 +54,24 @@ jobs:
             git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
           fi
           cp Formula/mcp-commands.rb "$TAP_DIR/Formula/"
+          # The tap's *name* varies by Homebrew version: 6.x derives it from
+          # the directory (mkuckert/homebrew-tap), 7.x strips the homebrew-
+          # prefix (mkuckert/tap). Ask brew instead of hardcoding.
+          TAP_NAME=$(brew tap | grep -E '^mkuckert/' || true)
+          if [ -z "$TAP_NAME" ]; then
+            echo "mkuckert tap not found after registration" >&2
+            exit 1
+          fi
           # The current Homebrew refuses to load formulas from untrusted taps;
           # this is a CI-registered clone of this very repo, so trust it.
-          brew trust --tap mkuckert/tap
+          brew trust --tap "$TAP_NAME"
 
       - name: Run brew test
         run: |
           set -euo pipefail
-          # `brew test` installs the formula's :test dependencies (fish, zsh)
-          # automatically.
+          # `brew test` requires the formula to be installed first; brew also
+          # installs the :test dependencies (fish, zsh) automatically.
+          brew install mcp-commands
           brew test --verbose mcp-commands
 
       - name: Run brew audit
