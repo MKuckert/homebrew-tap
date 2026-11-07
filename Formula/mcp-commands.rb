@@ -4,14 +4,14 @@ class McpCommands < Formula
   # Only the platforms with a release archive are supported; on anything
   # else the formula has no url and brew fails loudly at install time.
   if OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_darwin_amd64.tar.gz"
-    sha256 "03d023b133e787a14405ce105fa553d65790311939c336261dba3c6be9c57196"
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.13.0/mcp-commands_0.13.0_darwin_amd64.tar.gz"
+    sha256 "7ad9efd23d32169f9eb184030030f7fcbbcc8e0ce908d62468b53bda8c60d1ff"
   elsif OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_darwin_arm64.tar.gz"
-    sha256 "211c97ca6b9c45b27b5085bc336980bbafcc2509e5704b0a4345da0bacef345e"
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.13.0/mcp-commands_0.13.0_darwin_arm64.tar.gz"
+    sha256 "6a6c83abb40a14e1cbfede4a8bcf6c58dde8e9a500ac6bbc7ab46e015c7f1e7e"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.12.0/mcp-commands_0.12.0_linux_amd64.tar.gz"
-    sha256 "88161b5a169e4511ec540bf2d22f0c1f5072f784ed50d11d95caebc30861030f"
+    url "https://github.com/MKuckert/mcp-commands/releases/download/v0.13.0/mcp-commands_0.13.0_linux_amd64.tar.gz"
+    sha256 "a9a1c70ae007e2bada08d93cd9700a379d26728f5c254030a12aecad1ab48a78"
   end
   license "MIT"
 
