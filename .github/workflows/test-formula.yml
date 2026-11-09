@@ -1,10 +1,10 @@
 name: test-formula
 
-# Self-test on every push/PR. The `test` job runs the formula's own
-# `test` block and audits it, natively on Linux (amd64) and macOS
-# (arm64). The darwin_amd64 branch cannot run natively on current
-# GitHub runners, so the `checksums` job verifies that all three
-# release URLs exist and match their checksums instead.
+# Self-test on every push/PR, for each formula in the tap. The `test` job
+# runs the formula's own `test` block and audits it, natively on Linux
+# (amd64) and macOS (arm64). The other platform branches cannot run
+# natively on current GitHub runners, so the `checksums` job verifies that
+# every release URL exists and matches its checksum instead.
 on: [push, pull_request]
 
 permissions:
@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        formula: [mcp-commands, shizo]
     runs-on: ${{ matrix.os }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
@@ -54,7 +55,7 @@ jobs:
           if [ ! -d "$TAP_DIR" ]; then
             git clone --depth 1 "https://github.com/MKuckert/homebrew-tap" "$TAP_DIR"
           fi
-          cp Formula/mcp-commands.rb "$TAP_DIR/Formula/"
+          cp "Formula/${{ matrix.formula }}.rb" "$TAP_DIR/Formula/"
           TAP_NAME=$(brew tap | grep -E '^mkuckert/' | head -n 1 || true)
           if [ -z "$TAP_NAME" ]; then
             echo "mkuckert tap not found after registration" >&2
@@ -68,18 +69,29 @@ jobs:
         run: |
           set -euo pipefail
           # `brew test` requires the formula to be installed, plus its :test
-          # dependencies (fish, zsh) and their build deps; --include-test
-          # installs all of them.
-          brew install --include-test mcp-commands
-          brew test --verbose mcp-commands
+          # dependencies (e.g. mcp-commands' fish, zsh) and their build deps;
+          # --include-test installs all of them.
+          brew install --include-test ${{ matrix.formula }}
+          brew test --verbose ${{ matrix.formula }}
 
       - name: Run brew audit
         run: |
           set -euo pipefail
-          brew audit --formula mcp-commands
+          brew audit --formula ${{ matrix.formula }}
 
   checksums:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - formula: mcp-commands
+            platforms: "darwin_amd64 darwin_arm64 linux_amd64"
+          - formula: shizo
+            platforms: "darwin_amd64 darwin_arm64 linux_amd64 linux_arm64"
     runs-on: ubuntu-latest
+    env:
+      FORMULA: ${{ matrix.formula }}
+      PLATFORMS: ${{ matrix.platforms }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.0
@@ -90,25 +102,26 @@ jobs:
 
           # Extract the (url, sha256) pairs from the formula. Only release
           # archive URLs are matched, so the livecheck URL is ignored.
-          awk '
-            /url "https:\/\/github\.com\/MKuckert\/mcp-commands\/releases\/download\/v[^"]*_[a-z0-9_]+\.tar\.gz"/ { u = $2 }
+          awk -v name="$FORMULA" '
+            $0 ~ "url \"https://github\\.com/MKuckert/" name "/releases/download/v[^\"]*_[a-z0-9_]+\\.tar\\.gz\"" { u = $2 }
             /sha256 "/ { gsub(/"/, "", u); gsub(/"/, "", $2); print u " " $2 }
-          ' Formula/mcp-commands.rb > pairs.txt
+          ' "Formula/${FORMULA}.rb" > pairs.txt
 
-          # Exactly 3 platform archives today; update if the formula gains
-          # another.
+          # The formula must list exactly the platforms in the matrix; update
+          # the matrix if the formula gains another.
+          expected=$(echo $PLATFORMS | wc -w)
           count=$(grep -c . pairs.txt || true)
-          if [ "$count" -ne 3 ]; then
-            echo "expected 3 url/sha256 pairs in the formula, found $count" >&2
+          if [ "$count" -ne "$expected" ]; then
+            echo "expected ${expected} url/sha256 pairs in the formula, found $count" >&2
             exit 1
           fi
 
           # Each supported platform must be present exactly once (guards
           # against a duplicated url sneaking past the count check).
-          for suffix in _darwin_amd64 _darwin_arm64 _linux_amd64; do
-            matches=$(grep -c "mcp-commands_[0-9.]*${suffix}\.tar\.gz" pairs.txt || true)
+          for plat in $PLATFORMS; do
+            matches=$(grep -c "${FORMULA}_[0-9.]*_${plat}\.tar\.gz" pairs.txt || true)
             if [ "$matches" -ne 1 ]; then
-              echo "expected exactly one archive for ${suffix}, found ${matches}" >&2
+              echo "expected exactly one archive for ${plat}, found ${matches}" >&2
               exit 1
             fi
           done

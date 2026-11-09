@@ -1,8 +1,9 @@
 name: bump-formula
 
-# Triggered from MKuckert/mcp-commands' release workflow after a
-# successful GoReleaser release. The dispatch carries the tag
-# (e.g. "v0.9.0") in client_payload.
+# Triggered from the release workflow of MKuckert/mcp-commands or
+# MKuckert/shizo after a successful GoReleaser release. The dispatch
+# carries the tag (e.g. "v0.9.0") and the formula name ("mcp-commands" or
+# "shizo"; defaults to "mcp-commands") in client_payload.
 on:
   repository_dispatch:
     types: [release-bumped]
@@ -19,9 +20,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.0
 
-      - name: Bump mcp-commands formula
+      - name: Bump formula
         env:
           TAG: ${{ github.event.client_payload.tag }}
+          NAME: ${{ github.event.client_payload.formula || 'mcp-commands' }}
         run: |
           set -euo pipefail
 
@@ -29,39 +31,39 @@ jobs:
           # {{ .Version }} is bare, so filenames/URLs use the version
           # without the leading v.
           VER="${TAG#v}"
-          BASE="https://github.com/MKuckert/mcp-commands/releases/download/v${VER}"
-          F="Formula/mcp-commands.rb"
+          case "$NAME" in
+            mcp-commands|shizo) ;;
+            *) echo "unknown formula: ${NAME}" >&2; exit 1 ;;
+          esac
+          BASE="https://github.com/MKuckert/${NAME}/releases/download/v${VER}"
+          F="Formula/${NAME}.rb"
 
           curl -fsSL -o checksums.txt "${BASE}/checksums.txt"
-          sum() { awk -v f="$1" '$2 == f { print $1; exit }' checksums.txt; }
-
-          ARM="$(sum "mcp-commands_${VER}_darwin_arm64.tar.gz")"
-          INTEL="$(sum "mcp-commands_${VER}_darwin_amd64.tar.gz")"
-          LINUX="$(sum "mcp-commands_${VER}_linux_amd64.tar.gz")"
-          if [ -z "$ARM" ] || [ -z "$INTEL" ] || [ -z "$LINUX" ]; then
-            echo "missing checksums for ${VER}" >&2
-            exit 1
-          fi
 
           # Drop the one-time seed version line + its comment (present only
           # in the v0.8.3 seed; no-ops in steady state, where the URL
-          # carries the version). Then rewrite the top-level url (macOS
-          # arm64) and the url/sha256 of the darwin_amd64 + linux_amd64
-          # resources from the tag.
-          awk -v base="$BASE" -v ver="$VER" -v arm="$ARM" -v intel="$INTEL" -v linux="$LINUX" '
+          # carries the version). Then rewrite every platform archive url
+          # from the tag and the sha256 that follows it from checksums.txt,
+          # keeping each line's indentation. A platform without a checksum
+          # fails the bump.
+          awk -v base="$BASE" -v ver="$VER" -v name="$NAME" '
+            NR == FNR { sums[$2] = $1; next }
             /^  # One-time seed/ { next }
             /^  version "[^"]*"[[:space:]]*$/ { next }
-            /^[[:space:]]*url .*_(darwin_arm64|darwin_amd64|linux_amd64)/ {
-              if      ($0 ~ /darwin_arm64/) { plat = "darwin_arm64";  sum = arm }
-              else if ($0 ~ /darwin_amd64/) { plat = "darwin_amd64";  sum = intel }
-              else                          { plat = "linux_amd64";   sum = linux }
-              if ($0 ~ /^    /) printf "    url \"%s/mcp-commands_%s_%s.tar.gz\"\n", base, ver, plat
-              else              printf "  url \"%s/mcp-commands_%s_%s.tar.gz\"\n", base, ver, plat
+            /^[[:space:]]*url .*_(darwin|linux)_(arm64|amd64)\.tar\.gz/ {
+              match($0, /(darwin|linux)_(arm64|amd64)/)
+              plat = substr($0, RSTART, RLENGTH)
+              match($0, /^[[:space:]]*/)
+              indent = substr($0, 1, RLENGTH)
+              file = name "_" ver "_" plat ".tar.gz"
+              sum = sums[file]
+              if (sum == "") { print "missing checksum for " file > "/dev/stderr"; exit 1 }
+              printf "%surl \"%s/%s\"\n", indent, base, file
               next
             }
             /^[[:space:]]*sha256 "/ { gsub(/"[0-9a-f]+"/, "\"" sum "\""); print; next }
             { print }
-          ' "$F" > "$F.new" && mv "$F.new" "$F"
+          ' checksums.txt "$F" > "$F.new" && mv "$F.new" "$F"
 
           # Idempotent: re-dispatch on an unchanged version makes no changes;
           # check before the audit so no-op dispatches skip it.
@@ -95,10 +97,10 @@ jobs:
           # The current Homebrew refuses to load formulas from untrusted taps;
           # this is a CI-registered clone of this very repo, so trust it.
           brew trust --tap mkuckert/tap
-          brew audit --formula mcp-commands
+          brew audit --formula "$NAME"
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$F"
-          git commit -m "mcp-commands ${VER}"
+          git commit -m "${NAME} ${VER}"
           git push
