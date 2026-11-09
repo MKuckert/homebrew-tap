@@ -27,7 +27,10 @@ class Shizo < Formula
 
   def install
     # shizo.sh locates the binary next to itself, so both live in bin.
+    # The release archive ships shizo.sh without the exec bit; the hook
+    # command is invoked directly, so restore it.
     bin.install "shizo", "shizo.sh"
+    (bin/"shizo.sh").chmod 0755
     # Starter rules, example sandbox profile, editor grammar, pi extension.
     pkgshare.install "conf"
   end
@@ -50,6 +53,7 @@ class Shizo < Formula
   test do
     assert_match "shizo", shell_output("#{bin}/shizo --version")
     assert_path_exists bin/"shizo.sh"
+    assert_predicate bin/"shizo.sh", :executable?
     assert_path_exists pkgshare/"conf/global-rules.starter"
   end
 end
