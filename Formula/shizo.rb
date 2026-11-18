@@ -4,17 +4,17 @@ class Shizo < Formula
   # Only the platforms with a release archive are supported; on anything
   # else the formula has no url and brew fails loudly at install time.
   if OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/MKuckert/shizo/releases/download/v0.5/shizo_0.5_darwin_amd64.tar.gz"
-    sha256 "eab333fb73d9ff0817d893bd1ada02b7a9c3bce70f0a070ba144843e1c9e95ce"
+    url "https://github.com/MKuckert/shizo/releases/download/v0.6/shizo_0.6_darwin_amd64.tar.gz"
+    sha256 "1b98f21478fb1811516ba45ddb9fc5d3f822dd6e74999d095f77a54fac1073ca"
   elsif OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/MKuckert/shizo/releases/download/v0.5/shizo_0.5_darwin_arm64.tar.gz"
-    sha256 "e75decc0a2581391adfbb0fe9de05feaa80b36b4405ab89e799da8112b96b012"
+    url "https://github.com/MKuckert/shizo/releases/download/v0.6/shizo_0.6_darwin_arm64.tar.gz"
+    sha256 "0657a7c1e462b0a1b93bfe6466ba8137a5fc455223e2db2acbf4b9c405fd4257"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/MKuckert/shizo/releases/download/v0.5/shizo_0.5_linux_amd64.tar.gz"
-    sha256 "cc330108b1424da3dee6afd2cb6fc12135bbccd1acb1ca9979eac6bffa0ded49"
+    url "https://github.com/MKuckert/shizo/releases/download/v0.6/shizo_0.6_linux_amd64.tar.gz"
+    sha256 "3c976e35ce64919b1ab915e321b73dbe6c04475ae56d48a9d9feae9954a16ba1"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/MKuckert/shizo/releases/download/v0.5/shizo_0.5_linux_arm64.tar.gz"
-    sha256 "25290f94bed0da89e8756d9f07f25fae77ba09cb8a0adc42f5cd5c4500643f54"
+    url "https://github.com/MKuckert/shizo/releases/download/v0.6/shizo_0.6_linux_arm64.tar.gz"
+    sha256 "681f34d45433aa536b4f73fa36f0c3cb51799d5d8c4e9dfd3260aea0cfdd90a6"
   end
   license "MIT"
 
